@@ -1,0 +1,17 @@
+CLAUDE.md
+.claude/
+*.local.json
+.env
+.envrc
+*.token
+mlruns/
+data/raw/
+features/
+patch_export/
+*.svs
+*.h5
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+logs/
+mlflow.db
