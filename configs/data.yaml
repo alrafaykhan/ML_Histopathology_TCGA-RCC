@@ -1,0 +1,48 @@
+seed: 42
+
+paths:
+  root: ~/ML_Histopathology_TCGA-RCC
+  raw_wsi: ~/ML_Histopathology_TCGA-RCC/data/raw
+  cohort: data/cohort.csv
+  manifests: data/manifests
+  splits: data/splits
+  patch_export: ~/ML_Histopathology_TCGA-RCC/patch_export/10x
+  features: ~/ML_Histopathology_TCGA-RCC/features
+  hf_home: ~/hf_cache
+  results: results
+  reports: reports
+  logs: logs
+  mlflow_uri: sqlite:///mlflow.db
+
+gdc:
+  projects: [TCGA-KIRC, TCGA-KIRP, TCGA-KICH]
+  sample_types:
+    "01": tumor
+    "11": normal
+  labels:
+    TCGA-KIRC: ccRCC
+    TCGA-KIRP: pRCC
+    TCGA-KICH: chRCC
+    normal: Normal
+
+streaming:
+  max_raw_gb: 100  # min(100, free_wsl_gb - 170), floor 30; set in Phase 0
+  min_free_margin_gb: 30
+  min_free_windows_d_gb: 10
+  stop_if_wsl_free_below_gb: 60
+  workers: 4
+
+tiling:
+  target_mpp: 1.0
+  patch_size: 224
+  max_patches_per_slide: 1000
+  min_patches_per_slide: 50
+  jpeg_quality: 90
+
+loader:
+  num_workers: 4
+
+gpu:
+  temp_pause_c: 85
+  temp_resume_c: 75
+  monitor_interval_s: 60

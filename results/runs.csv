@@ -1,0 +1,1 @@
+run_id,timestamp,experiment,encoder,aggregator,fold,seed,git_commit,metric_bal_acc,metric_macro_auroc,runtime_s,hardware
