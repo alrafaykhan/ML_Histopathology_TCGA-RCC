@@ -1,0 +1,9 @@
+name: midnight12k
+tier: "3"
+order: 20
+source: hf_transformers
+model_id: kaiko-ai/midnight
+embedding: cls_mean
+licence: mit
+mean: [0.5, 0.5, 0.5]
+std: [0.5, 0.5, 0.5]

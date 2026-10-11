@@ -1,0 +1,7 @@
+name: convnext_base
+tier: "1a"
+order: 4
+source: timm
+model_id: convnext_base.fb_in1k
+embedding: pooled
+licence: apache-2.0

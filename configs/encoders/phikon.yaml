@@ -1,0 +1,11 @@
+name: phikon
+tier: "1b"
+order: 10
+source: hf_transformers
+model_id: owkin/phikon
+embedding: cls
+licence: owkin non-commercial
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+kwargs:
+  add_pooling_layer: false

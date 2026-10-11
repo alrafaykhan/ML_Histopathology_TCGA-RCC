@@ -1,0 +1,11 @@
+# Truncated after layer3 and mean-pooled (1024-d), the CLAM/TRIDENT reference baseline.
+name: resnet50
+tier: "1b"
+order: 13
+source: timm
+model_id: resnet50.tv_in1k
+embedding: feature_map_mean
+licence: bsd-3-clause
+kwargs:
+  features_only: true
+  out_indices: [3]

@@ -1,0 +1,7 @@
+name: vit_b16
+tier: "1a"
+order: 6
+source: timm
+model_id: vit_base_patch16_224.augreg2_in21k_ft_in1k
+embedding: cls
+licence: apache-2.0

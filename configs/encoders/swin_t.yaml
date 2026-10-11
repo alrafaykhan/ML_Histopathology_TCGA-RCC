@@ -1,0 +1,7 @@
+name: swin_t
+tier: "1a"
+order: 5
+source: timm
+model_id: swin_tiny_patch4_window7_224.ms_in1k
+embedding: pooled
+licence: mit

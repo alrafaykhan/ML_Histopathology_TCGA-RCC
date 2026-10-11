@@ -1,0 +1,7 @@
+name: resnet18
+tier: "1a"
+order: 1
+source: timm
+model_id: resnet18.tv_in1k
+embedding: pooled
+licence: bsd-3-clause

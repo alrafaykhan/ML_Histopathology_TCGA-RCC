@@ -1,0 +1,7 @@
+name: efficientnet_b0
+tier: "1a"
+order: 2
+source: timm
+model_id: efficientnet_b0.ra_in1k
+embedding: pooled
+licence: apache-2.0

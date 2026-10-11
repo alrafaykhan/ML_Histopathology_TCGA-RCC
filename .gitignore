@@ -4,10 +4,10 @@ CLAUDE.md
 .env
 .envrc
 *.token
-mlruns/
+/mlruns/
 data/raw/
-features/
-patch_export/
+/features/
+/patch_export/
 *.svs
 *.h5
 __pycache__/

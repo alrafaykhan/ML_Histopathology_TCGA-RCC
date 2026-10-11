@@ -1,0 +1,11 @@
+name: kaiko_vits16
+tier: "1b"
+order: 7
+source: timm
+model_id: hf-hub:1aurent/vit_small_patch16_224.kaiko_ai_towards_large_pathology_fms
+embedding: cls
+licence: kaiko non-commercial
+mean: [0.5, 0.5, 0.5]
+std: [0.5, 0.5, 0.5]
+kwargs:
+  dynamic_img_size: true

@@ -1,0 +1,9 @@
+name: distillpath_ks16_virchow2
+tier: "1b"
+order: 8
+source: timm
+model_id: hf-hub:RamonK/DistillPath-KS16-Virchow2
+embedding: cls
+licence: kaiko non-commercial
+mean: [0.5, 0.5, 0.5]
+std: [0.5, 0.5, 0.5]
