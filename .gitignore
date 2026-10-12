@@ -8,6 +8,8 @@ CLAUDE.md
 data/raw/
 /features/
 /patch_export/
+/coords/
+/qc/
 *.svs
 *.h5
 __pycache__/

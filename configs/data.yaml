@@ -7,6 +7,9 @@ paths:
   manifests: data/manifests
   splits: data/splits
   patch_export: ~/ML_Histopathology_TCGA-RCC/patch_export/10x
+  coords: ~/ML_Histopathology_TCGA-RCC/coords/10x
+  thumbnails: ~/ML_Histopathology_TCGA-RCC/qc/thumbnails
+  slide_qc: data/qc/slide_qc.csv
   features: ~/ML_Histopathology_TCGA-RCC/features
   hf_home: ~/hf_cache
   results: results
@@ -41,6 +44,12 @@ streaming:
   min_free_windows_d_gb: 10
   stop_if_wsl_free_below_gb: 60
   workers: 4
+  delete_raw_after_export: true
+
+qc:
+  min_tissue_frac_per_patch: 0.5
+  max_pen_frac: 0.5
+  min_blur_laplacian_var: 0  # calibrated on the first batch; 0 records without excluding
 
 tiling:
   target_mpp: 1.0
