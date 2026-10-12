@@ -39,6 +39,45 @@ def tissue_mask(rgb: np.ndarray, min_area_frac: float = 0.0005) -> np.ndarray:
     return keep[labels]
 
 
+def tissue_grid(
+    slide: openslide.OpenSlide,
+    target_mpp: float = 1.0,
+    patch_size: int = 224,
+    min_tissue: float = 0.5,
+    thumb_px_per_patch: int = 8,
+    exclude_pen: bool = False,
+) -> dict:
+    """Segment tissue on a thumbnail and lay a non-overlapping patch grid over it.
+
+    Returns a dict with ``coords`` (level-0 (x, y) of patches with at least ``min_tissue``
+    tissue), ``footprint`` (level-0 patch size in pixels), the ``thumb`` RGB array, its
+    ``tissue`` mask, the ``pen`` mask, and ``scale`` (level-0 pixels per thumbnail pixel).
+    """
+    from src.preprocessing.qc import pen_mask
+
+    footprint = patch_size * target_mpp / slide_mpp(slide)
+    w0, h0 = slide.dimensions
+    scale = footprint / thumb_px_per_patch
+    thumb = np.asarray(slide.get_thumbnail((int(w0 / scale), int(h0 / scale))).convert("RGB"))
+    tissue = tissue_mask(thumb)
+    pen = pen_mask(thumb) if exclude_pen else np.zeros_like(tissue)
+    usable = tissue & ~pen
+
+    k = thumb_px_per_patch
+    ny, nx = usable.shape[0] // k, usable.shape[1] // k
+    frac = usable[: ny * k, : nx * k].reshape(ny, k, nx, k).mean(axis=(1, 3))
+    iy, ix = np.nonzero(frac >= min_tissue)
+    coords = np.stack([ix * footprint, iy * footprint], axis=1).round().astype(np.int64)
+    return {
+        "coords": coords,
+        "footprint": footprint,
+        "thumb": thumb,
+        "tissue": tissue,
+        "pen": pen,
+        "scale": scale,
+    }
+
+
 def tissue_coords(
     slide: openslide.OpenSlide,
     target_mpp: float = 1.0,
@@ -50,18 +89,8 @@ def tissue_coords(
 
     Returns the coordinates and the level-0 patch footprint in pixels.
     """
-    footprint = patch_size * target_mpp / slide_mpp(slide)
-    w0, h0 = slide.dimensions
-    scale = footprint / thumb_px_per_patch
-    thumb = slide.get_thumbnail((int(w0 / scale), int(h0 / scale))).convert("RGB")
-    mask = tissue_mask(np.asarray(thumb))
-
-    ny, nx = mask.shape[0] // thumb_px_per_patch, mask.shape[1] // thumb_px_per_patch
-    k = thumb_px_per_patch
-    frac = mask[: ny * k, : nx * k].reshape(ny, k, nx, k).mean(axis=(1, 3))
-    iy, ix = np.nonzero(frac >= min_tissue)
-    coords = np.stack([ix * footprint, iy * footprint], axis=1).round().astype(np.int64)
-    return coords, footprint
+    grid = tissue_grid(slide, target_mpp, patch_size, min_tissue, thumb_px_per_patch)
+    return grid["coords"], grid["footprint"]
 
 
 def read_patch(
