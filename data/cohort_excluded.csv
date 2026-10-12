@@ -1,0 +1,33 @@
+file_id,file_name,project,sample_type,exclusion_reason
+403b0cc2-68a5-4253-8988-49f3f9d4509a,TCGA-B8-A54K-01A-01-TSA.FF8885FD-BFE7-4F34-B830-312A8A5DB2B2.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+477eefac-ea00-43fa-9d84-c86e10c0de52,TCGA-B8-A54I-01A-02-TS2.942FD6E4-C1EF-4562-8A46-438E8FE7E9C5.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+0281d58a-f524-4263-abec-743e8b4398ff,TCGA-DV-A4W0-05Z-00-DX1.873A695C-2FEC-4238-9DA5-45CBD2DF30D9.svs,TCGA-KIRC,Additional - New Primary,sample type 05 not in scope
+884faf91-8480-42c7-bc27-9425dcefadb5,TCGA-A3-A6NI-01A-01-TS1.1CB452F5-5B2F-48F2-BFF4-F44E91ED29F1.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+91159f6a-bb31-407e-98fc-cdc028ec4d1e,TCGA-A3-A6NN-01Z-00-DX1.4769C9A7-02D2-4080-8AA1-CD34F11CB344.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+47fda244-af1b-4047-a3b8-29e8feb5b4f7,TCGA-B8-A54J-01Z-00-DX1.D9DA4491-BC23-4AA4-92CB-26956C78A034.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+9d6f539a-22ba-44ba-b50e-1a6a51abf621,TCGA-B8-A54J-01A-01-TS1.92336782-FE8D-4FA0-85CD-F94D05A5C069.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+a064fce3-576c-402d-a19c-d586ad8f515a,TCGA-GK-A6C7-01A-01-TS1.C4777119-C217-49EB-B1D4-666D87A0CD1B.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+f329e554-fdfd-4963-b150-754d8238c894,TCGA-B8-A54H-01Z-00-DX1.7DE86788-D09C-471E-B62D-2597EEAC3326.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+e427290a-79c4-4157-b29e-0679cfe114e4,TCGA-B8-A54E-01Z-00-DX1.336165F7-BBAC-4FA8-B776-E12483C60B62.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+bed7e2f4-6290-4d4f-af2c-c1887eaaaf34,TCGA-A3-A6NJ-01Z-00-DX1.249AAC4B-E019-43FA-96EF-95ED15D3D264.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+77009afa-dba7-4706-8f5e-7ae0f56c9330,TCGA-B8-A54I-01Z-00-DX1.76B5A794-746B-47DC-A771-3B56F24EF28B.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+c3366298-e73c-404b-b0be-6c09990e5d80,TCGA-GK-A6C7-01Z-00-DX1.291DEE77-CD13-4D8E-BA35-6EC15F45D264.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+aa060ba6-f6c1-4bc0-bd90-0034c856dd65,TCGA-A3-A6NL-01A-01-TS1.08692307-9866-4A8E-8497-1D0DFBA2915D.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+1c805bc7-e339-4849-b46b-018c5fd10fdc,TCGA-B8-A54F-01Z-00-DX1.7C46D299-64F5-42C0-8226-A1AB4FF5C879.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+4c988491-d08b-46d5-90a9-995037c60a4d,TCGA-B8-A54F-01A-01-TS1.23F992B5-71EE-4DB1-B15C-6F07ACD4E8F5.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+c2d98513-2d9d-4867-8129-929ff164b203,TCGA-B8-A54D-01Z-00-DX1.DCD17375-918C-4AEA-96F0-7FF8FCF4D00B.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+48d6224e-7484-4ab6-881e-317eb92ab00b,TCGA-B8-A54D-01A-02-TS2.C3F86ECE-94E1-4D0D-9AF8-E0021DA29A55.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+f5ad1a13-8f77-43c3-9400-66ecf20cfc56,TCGA-UZ-A9PS-05A-01-TSA.D780AE03-08BC-4FF0-ABFC-CDF8E96FE8CE.svs,TCGA-KIRP,Additional - New Primary,sample type 05 not in scope
+f16903c4-b378-4be2-bcd8-421471dec6e1,TCGA-5P-A9KF-01A-01-TS1.145C9B6C-AEFB-4AE6-AC0D-7133444B624F.svs,TCGA-KIRP,Primary Tumor,duplicate slide id
+836fee54-105c-491b-ab9b-af95bdb68595,TCGA-5P-A9KF-01A-01-TS1.025E5FB2-3F36-46D5-9846-C626F232D277.svs,TCGA-KIRP,Primary Tumor,duplicate slide id
+89128c68-9f1c-40a1-b037-c75b91b37eee,TCGA-DV-A4W0-05A-01-TSA.AD2454E3-1577-445E-887C-E76E6CF96CBB.svs,TCGA-KIRC,Additional - New Primary,sample type 05 not in scope
+d0353ebc-7c65-4887-912b-c8ff12139d77,TCGA-A3-A6NL-01Z-00-DX1.7796AE2F-CC39-4266-A740-DBB04ACA869D.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+51f54f27-0b5d-4b1b-a5eb-ed27125b6024,TCGA-B8-A54E-01A-01-TS1.287E393E-BE65-46F4-BB17-171DC9E825B1.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+f26fbb60-cf36-4aa1-a98b-1ee811e9c5ef,TCGA-B8-A54K-01Z-00-DX1.F23402E5-5F94-4B66-80C1-A136578CC450.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+3dcddd42-31f2-4f5e-b414-0afaed761a3a,TCGA-MW-A4EC-01A-01-TSA.3B78C473-2711-478C-8004-B6CAE5FA8357.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+a9d65c60-1f86-4912-9e7f-25248c5b0bdd,TCGA-B8-A54G-01Z-00-DX1.0EDB6818-907C-4C37-8645-628850202AD0.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+8d02a141-3300-41d6-8ef2-96d6a9aefe8a,TCGA-B8-A54G-01A-01-TS1.706660E3-2787-4505-922F-F86DBD960A67.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+ea20646c-fa89-4fec-afb2-34b8f0a9b52e,TCGA-B8-A54H-01A-01-TS1.2CFA77DB-F0BB-48D7-B43A-E18C04B89C57.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+774514e6-4ec2-4697-86ba-b8f3df2fb1e3,TCGA-A3-A6NI-01Z-00-DX1.F7C8BE3C-D2B9-4374-BBB7-64C7CE11C0E1.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+e3c67f26-a080-4ef2-851c-32f7b6b84eea,TCGA-A3-A6NN-01A-01-TS1.6A83ABEA-7ACE-4DF3-83A6-CF4F0DD05850.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
+16ad4d9a-6bbd-4038-9ea2-00d3d4109b15,TCGA-A3-A6NJ-01A-01-TS1.BF7F3DAA-E2B3-4697-BD5C-4D3DDE4FE3AF.svs,TCGA-KIRC,Primary Tumor,"primary diagnosis 'Renal cell carcinoma, NOS' not 'Clear cell adenocarcinoma, NOS'"
