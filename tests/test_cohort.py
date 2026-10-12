@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.data.cohort import build_cohort, parse_slide_name
+from src.data.cohort import assign_batches, build_cohort, parse_slide_name, select_slides
 
 LABELS = {"TCGA-KIRC": "ccRCC", "TCGA-KIRP": "pRCC", "TCGA-KICH": "chRCC", "normal": "Normal"}
 UUID = "ebb876a2-ae65-4a58-90e7-9da5e5a71426"
@@ -70,3 +70,25 @@ def test_labels_and_exclusions():
     assert "not 'Clear cell" in reasons["TCGA-CC-0003-01A-01-DX1"]
     assert "not in scope" in reasons["TCGA-DD-0004-06A-01-TS1"]
     assert "disagrees" in reasons["TCGA-EE-0005-01A-01-TS1"]
+
+
+def test_select_and_batches():
+    cohort = pd.DataFrame(
+        {
+            "slide_id": ["P1-TS1", "P1-BS1", "P1-N-TS1", "P2-DX1", "P3-DX1", "P4-TS1"],
+            "patient_id": ["P1", "P1", "P1", "P2", "P3", "P4"],
+            "label": ["ccRCC", "ccRCC", "Normal", "pRCC", "Normal", "chRCC"],
+            "slide_type": ["frozen", "frozen", "frozen", "ffpe", "ffpe", "frozen"],
+            "file_size": [10e9, 10e9, 5e9, 8e9, 1e9, 15e9],
+        }
+    )
+    classes = {"A": ["ccRCC", "pRCC", "chRCC", "Normal"], "B": ["ccRCC", "pRCC", "chRCC"]}
+    cohort["selected"] = select_slides(cohort, classes, per_patient=1)
+    assert cohort["selected"].tolist() == [False, True, True, True, False, True]
+
+    batch = assign_batches(cohort, batch_gb=20, track_order=["A", "B"], seed=0)
+    assert batch[~cohort["selected"]].isna().all()
+    frozen_batches = set(batch[cohort["selected"] & (cohort["slide_type"] == "frozen")])
+    assert batch[3] > max(frozen_batches)
+    sizes = cohort[cohort["selected"]].groupby(batch)["file_size"].sum()
+    assert (sizes[sizes.index.isin(frozen_batches)] <= 20e9).all()

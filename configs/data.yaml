@@ -25,6 +25,16 @@ gdc:
     TCGA-KICH: chRCC
     normal: Normal
 
+tracks:
+  order: [A, B]  # A = frozen (TS/BS), B = FFPE (DX); downloaded in this order
+  classes:
+    A: [ccRCC, pRCC, chRCC, Normal]
+    B: [ccRCC, pRCC, chRCC]  # only 12 FFPE normals from one site; kept in cohort, not trained
+  slides_per_patient_class: 1
+
+download:
+  batch_gb: 20
+
 streaming:
   max_raw_gb: 100  # min(100, free_wsl_gb - 170), floor 30; set in Phase 0
   min_free_margin_gb: 30

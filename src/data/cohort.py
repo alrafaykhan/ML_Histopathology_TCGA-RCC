@@ -141,8 +141,61 @@ def build_cohort(
 
 
 def track_of(cohort: pd.DataFrame) -> pd.Series:
-    """Track A = frozen slides (all classes); Track B = FFPE diagnostic slides."""
+    """Track A = frozen sections (TS/BS); Track B = FFPE diagnostic slides (DX)."""
     return cohort["slide_type"].map({"frozen": "A", "ffpe": "B"})
+
+
+def select_slides(
+    cohort: pd.DataFrame, track_classes: dict[str, list[str]], per_patient: int
+) -> pd.Series:
+    """Mark slides used for training: in-scope classes per track, ``per_patient`` slides per
+    patient and class (lowest slide ids first, so the choice is deterministic)."""
+    track = track_of(cohort)
+    in_scope = pd.Series(
+        [label in track_classes[t] for t, label in zip(track, cohort["label"], strict=True)],
+        index=cohort.index,
+    )
+    rank = (
+        cohort.assign(track=track)
+        .sort_values("slide_id")
+        .groupby(["track", "patient_id", "label"])
+        .cumcount()
+        .reindex(cohort.index)
+    )
+    return in_scope & (rank < per_patient)
+
+
+def assign_batches(
+    cohort: pd.DataFrame, batch_gb: float, track_order: list[str], seed: int
+) -> pd.Series:
+    """Assign selected slides to download batches of about ``batch_gb``.
+
+    Tracks are downloaded in ``track_order``. Within a track, slides are shuffled per class
+    and interleaved round-robin across classes so every early batch contains all classes.
+    Returns 1-based batch numbers (NA for unselected slides).
+    """
+    batch = pd.Series(pd.NA, index=cohort.index, dtype="Int64")
+    track = track_of(cohort)
+    limit = batch_gb * 1e9
+    current, filled = 1, 0.0
+    for t in track_order:
+        sel = cohort[cohort["selected"] & (track == t)]
+        queues = [
+            list(g.sample(frac=1, random_state=seed).index)
+            for _, g in sel.groupby("label", sort=True)
+        ]
+        order = [
+            q[i] for i in range(max(map(len, queues), default=0)) for q in queues if i < len(q)
+        ]
+        for idx in order:
+            size = cohort.at[idx, "file_size"]
+            if filled and filled + size > limit:
+                current, filled = current + 1, 0.0
+            batch[idx] = current
+            filled += size
+        if filled:
+            current, filled = current + 1, 0.0
+    return batch
 
 
 def gdc_manifest(df: pd.DataFrame) -> pd.DataFrame:

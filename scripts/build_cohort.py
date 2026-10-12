@@ -13,9 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.data.cohort import (  # noqa: E402
+    assign_batches,
     build_cohort,
     gdc_manifest,
     query_primary_diagnoses,
+    select_slides,
     track_of,
 )
 from src.data.gdc import query_slide_files  # noqa: E402
@@ -46,7 +48,6 @@ def crosstab_md(df: pd.DataFrame, values: str | None = None) -> str:
 
 
 def summary_md(cohort: pd.DataFrame, excluded: pd.DataFrame) -> str:
-    cohort = cohort.assign(track=track_of(cohort))
     out = [
         "# Cohort summary",
         "",
@@ -68,7 +69,9 @@ def summary_md(cohort: pd.DataFrame, excluded: pd.DataFrame) -> str:
         "## Tracks",
         "",
         "Track A: frozen sections (TS/BS) for all four classes. "
-        "Track B: FFPE diagnostic slides (DX).",
+        "Track B: FFPE diagnostic slides (DX) for the three tumor classes; the FFPE normals "
+        "are listed but not selected. Selected = one slide per patient and class "
+        "(`selected` column in `data/cohort.csv`).",
         "",
     ]
     rows = []
@@ -83,6 +86,8 @@ def summary_md(cohort: pd.DataFrame, excluded: pd.DataFrame) -> str:
                     "patients": s["patient_id"].nunique(),
                     "sites": s["site"].nunique(),
                     "size_gb": round(s["file_size"].sum() / 1e9, 1),
+                    "selected": int(s["selected"].sum()),
+                    "selected_gb": round(s.loc[s["selected"], "file_size"].sum() / 1e9, 1),
                 }
             )
         rows.append(
@@ -93,9 +98,25 @@ def summary_md(cohort: pd.DataFrame, excluded: pd.DataFrame) -> str:
                 "patients": g["patient_id"].nunique(),
                 "sites": g["site"].nunique(),
                 "size_gb": round(g["file_size"].sum() / 1e9, 1),
+                "selected": int(g["selected"].sum()),
+                "selected_gb": round(g.loc[g["selected"], "file_size"].sum() / 1e9, 1),
             }
         )
     out += [pd.DataFrame(rows).to_markdown(index=False), ""]
+
+    sel = cohort[cohort["selected"]]
+    batches = sel.groupby("batch").agg(
+        track=("track", "first"),
+        slides=("slide_id", "size"),
+        size_gb=("file_size", lambda x: round(x.sum() / 1e9, 1)),
+        **{c: ("label", lambda x, c=c: int((x == c).sum())) for c in CLASSES},
+    )
+    out += [
+        f"Download batches: {len(batches)} (manifests in `data/manifests/batches/`).",
+        "",
+        batches.head(3).to_markdown(),
+        "",
+    ]
 
     per_patient = cohort.groupby(["track", "label", "patient_id"]).size()
     multi = per_patient[per_patient > 1].groupby(level=[0, 1]).size()
@@ -156,6 +177,14 @@ def main() -> None:
     cases = query_primary_diagnoses(projects)
     print(f"GDC: {len(files)} open SVS files, {len(cases)} cases")
     cohort, excluded = build_cohort(files, cases, cfg["gdc"]["labels"])
+    tracks_cfg = cfg["tracks"]
+    cohort["track"] = track_of(cohort)
+    cohort["selected"] = select_slides(
+        cohort, tracks_cfg["classes"], tracks_cfg["slides_per_patient_class"]
+    )
+    cohort["batch"] = assign_batches(
+        cohort, cfg["download"]["batch_gb"], tracks_cfg["order"], seed=cfg["seed"]
+    )
 
     cohort_path = ROOT / cfg["paths"]["cohort"]
     cohort.to_csv(cohort_path, index=False)
@@ -163,11 +192,14 @@ def main() -> None:
 
     manifest_dir = ROOT / cfg["paths"]["manifests"]
     manifest_dir.mkdir(parents=True, exist_ok=True)
-    tracks = track_of(cohort)
-    for track in ("A", "B"):
-        gdc_manifest(cohort[tracks == track]).to_csv(
+    for track in tracks_cfg["order"]:
+        gdc_manifest(cohort[cohort["selected"] & (cohort["track"] == track)]).to_csv(
             manifest_dir / f"gdc_manifest_track{track}.txt", sep="\t", index=False
         )
+    batch_dir = manifest_dir / "batches"
+    batch_dir.mkdir(exist_ok=True)
+    for b, g in cohort[cohort["selected"]].groupby("batch"):
+        gdc_manifest(g).to_csv(batch_dir / f"batch_{b:03d}.txt", sep="\t", index=False)
 
     report = ROOT / cfg["paths"]["reports"] / "cohort_summary.md"
     report.write_text(summary_md(cohort, excluded))
