@@ -1,0 +1,180 @@
+"""Phase 1: query GDC, build data/cohort.csv, manifests and reports/cohort_summary.md."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from datetime import date
+from pathlib import Path
+
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from src.data.cohort import (  # noqa: E402
+    build_cohort,
+    gdc_manifest,
+    query_primary_diagnoses,
+    track_of,
+)
+from src.data.gdc import query_slide_files  # noqa: E402
+from src.utils import load_config  # noqa: E402
+
+CLASSES = ["ccRCC", "pRCC", "chRCC", "Normal"]
+
+
+def gb(nbytes: float) -> str:
+    return f"{nbytes / 1e9:,.1f}"
+
+
+def crosstab_md(df: pd.DataFrame, values: str | None = None) -> str:
+    """Class x slide-type table of slide counts (or unique ``values``) with totals."""
+    if values is None:
+        tab = pd.crosstab(df["label"], df["slide_type"], margins=True, margins_name="total")
+    else:
+        tab = pd.crosstab(
+            df["label"],
+            df["slide_type"],
+            values=df[values],
+            aggfunc="nunique",
+            margins=True,
+            margins_name="total",
+        )
+    tab = tab.reindex(CLASSES + ["total"]).fillna(0).astype(int)
+    return tab.to_markdown()
+
+
+def summary_md(cohort: pd.DataFrame, excluded: pd.DataFrame) -> str:
+    cohort = cohort.assign(track=track_of(cohort))
+    out = [
+        "# Cohort summary",
+        "",
+        f"Generated {date.today().isoformat()} from the GDC API (open-access SVS files, "
+        "TCGA-KIRC, TCGA-KIRP, TCGA-KICH; sample types 01 and 11).",
+        "",
+        f"Retained: {len(cohort):,} slides from {cohort['patient_id'].nunique():,} patients "
+        f"and {cohort['site'].nunique()} tissue source sites, {gb(cohort['file_size'].sum())} GB. "
+        f"Excluded: {len(excluded):,} files.",
+        "",
+        "## Slides per class and slide type",
+        "",
+        crosstab_md(cohort),
+        "",
+        "## Patients per class and slide type",
+        "",
+        crosstab_md(cohort, values="patient_id"),
+        "",
+        "## Tracks",
+        "",
+        "Track A: frozen sections (TS/BS) for all four classes. "
+        "Track B: FFPE diagnostic slides (DX).",
+        "",
+    ]
+    rows = []
+    for track, g in cohort.groupby("track"):
+        for label in CLASSES:
+            s = g[g["label"] == label]
+            rows.append(
+                {
+                    "track": track,
+                    "class": label,
+                    "slides": len(s),
+                    "patients": s["patient_id"].nunique(),
+                    "sites": s["site"].nunique(),
+                    "size_gb": round(s["file_size"].sum() / 1e9, 1),
+                }
+            )
+        rows.append(
+            {
+                "track": track,
+                "class": "total",
+                "slides": len(g),
+                "patients": g["patient_id"].nunique(),
+                "sites": g["site"].nunique(),
+                "size_gb": round(g["file_size"].sum() / 1e9, 1),
+            }
+        )
+    out += [pd.DataFrame(rows).to_markdown(index=False), ""]
+
+    per_patient = cohort.groupby(["track", "label", "patient_id"]).size()
+    multi = per_patient[per_patient > 1].groupby(level=[0, 1]).size()
+    out += [
+        "Patients with more than one slide in the same track and class "
+        "(kept; splits are patient-level):",
+        "",
+        multi.rename("patients").reset_index().to_markdown(index=False) if len(multi) else "none",
+        "",
+        "## Tissue source sites",
+        "",
+        "Slides per site and class (sites with at least 10 slides; remaining sites pooled).",
+        "",
+    ]
+    site_tab = pd.crosstab(cohort["site"], cohort["label"]).reindex(columns=CLASSES, fill_value=0)
+    site_tab["total"] = site_tab.sum(axis=1)
+    site_tab = site_tab.sort_values("total", ascending=False)
+    big = site_tab[site_tab["total"] >= 10]
+    small = site_tab[site_tab["total"] < 10]
+    if len(small):
+        big.loc[f"other ({len(small)} sites)"] = small.sum()
+    out += [big.to_markdown(), ""]
+
+    classes_per_site = (site_tab[CLASSES] > 0).sum(axis=1)
+    out += [
+        f"Sites contributing slides of a single class: {(classes_per_site == 1).sum()} of "
+        f"{len(site_tab)}. Site and class are strongly associated, which motivates the "
+        "site-held-out evaluation.",
+        "",
+        "## Exclusions",
+        "",
+        (
+            excluded["exclusion_reason"]
+            .str.replace(r"'.*?'", "'...'", regex=True)
+            .value_counts()
+            .rename_axis("reason")
+            .rename("files")
+            .reset_index()
+            .to_markdown(index=False)
+            if len(excluded)
+            else "none"
+        ),
+        "",
+        "Full list: `data/cohort_excluded.csv`.",
+        "",
+    ]
+    return "\n".join(out)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", default=str(ROOT / "configs" / "data.yaml"))
+    args = parser.parse_args()
+    cfg = load_config(args.config)
+    projects = cfg["gdc"]["projects"]
+
+    files = query_slide_files(projects)
+    cases = query_primary_diagnoses(projects)
+    print(f"GDC: {len(files)} open SVS files, {len(cases)} cases")
+    cohort, excluded = build_cohort(files, cases, cfg["gdc"]["labels"])
+
+    cohort_path = ROOT / cfg["paths"]["cohort"]
+    cohort.to_csv(cohort_path, index=False)
+    excluded.to_csv(cohort_path.with_name("cohort_excluded.csv"), index=False)
+
+    manifest_dir = ROOT / cfg["paths"]["manifests"]
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    tracks = track_of(cohort)
+    for track in ("A", "B"):
+        gdc_manifest(cohort[tracks == track]).to_csv(
+            manifest_dir / f"gdc_manifest_track{track}.txt", sep="\t", index=False
+        )
+
+    report = ROOT / cfg["paths"]["reports"] / "cohort_summary.md"
+    report.write_text(summary_md(cohort, excluded))
+    print(f"retained {len(cohort)} slides, excluded {len(excluded)}")
+    print(crosstab_md(cohort))
+    print(f"wrote {cohort_path}, manifests and {report}")
+
+
+if __name__ == "__main__":
+    main()
