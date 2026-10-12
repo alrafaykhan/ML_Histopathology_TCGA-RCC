@@ -82,7 +82,8 @@ def download_file(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     part = out_path.with_suffix(out_path.suffix + ".part")
 
-    for attempt in range(retries):
+    failures = 0  # consecutive attempts that added no bytes
+    while True:
         offset = part.stat().st_size if part.exists() else 0
         headers = {"Range": f"bytes={offset}-"} if offset else {}
         try:
@@ -97,12 +98,21 @@ def download_file(
                     for block in r.iter_content(chunk):
                         f.write(block)
             break
-        except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as err:
-            wait = min(60, 2**attempt)
-            print(f"download {file_id}: {err!r}; retry {attempt + 1}/{retries} in {wait}s")
+        except (
+            requests.ConnectionError,
+            requests.Timeout,
+            requests.HTTPError,
+            requests.exceptions.ChunkedEncodingError,
+        ) as err:
+            grew = part.exists() and part.stat().st_size > offset
+            failures = 0 if grew else failures + 1
+            if failures >= retries:
+                raise RuntimeError(
+                    f"download failed after {retries} attempts without progress: {file_id}"
+                ) from err
+            wait = min(60, 2**failures)
+            print(f"download {file_id}: {type(err).__name__}; resuming in {wait}s", flush=True)
             time.sleep(wait)
-    else:
-        raise RuntimeError(f"download failed after {retries} attempts: {file_id}")
 
     if md5_of(part) != md5:
         part.unlink()
