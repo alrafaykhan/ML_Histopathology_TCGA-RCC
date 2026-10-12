@@ -11,7 +11,13 @@ mkdir -p logs
 exec > >(tee -a "$LOG") 2>&1
 echo "== phase0b start $(date -Is) commit $(git rev-parse --short HEAD)"
 
-systemd-inhibit --what=idle:sleep --why="Phase 0b benchmark" \
-  bash -c "\"$PY\" scripts/prepare_bench_patches.py && \"$PY\" scripts/benchmark_encoders.py"
+JOB="\"$PY\" scripts/prepare_bench_patches.py && \"$PY\" scripts/benchmark_encoders.py"
+# systemd-inhibit is denied under WSL2; sleep is then managed by Windows power settings.
+if systemd-inhibit --what=idle:sleep --why="probe" true 2>/dev/null; then
+  systemd-inhibit --what=idle:sleep --why="Phase 0b benchmark" bash -c "$JOB"
+else
+  echo "systemd-inhibit unavailable; relying on Windows power settings"
+  bash -c "$JOB"
+fi
 
 echo "== phase0b done $(date -Is)"
