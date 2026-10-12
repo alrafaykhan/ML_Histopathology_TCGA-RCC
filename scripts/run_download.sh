@@ -11,5 +11,5 @@ mkdir -p logs
 
 exec > >(tee -a "$LOG") 2>&1
 echo "== download batch $BATCH start $(date -Is) commit $(git rev-parse --short HEAD)"
-"$PY" scripts/download_batch.py --batch "$BATCH"
+"$PY" -u scripts/download_batch.py --batch "$BATCH"
 echo "== download batch $BATCH done $(date -Is)"
