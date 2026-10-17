@@ -36,3 +36,4 @@ dependencies:
       - webdataset==1.0.2
       - nvidia-ml-py==13.615.71
       - mlflow==3.17.0
+      - idc-index==0.13.1
