@@ -1,0 +1,10 @@
+name: prov_gigapath
+tier: "3"
+order: 19
+source: timm
+model_id: hf-hub:prov-gigapath/prov-gigapath
+embedding: cls
+gated: true
+licence: prov-gigapath non-commercial
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]

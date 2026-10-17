@@ -12,9 +12,10 @@ def test_encoder_specs_valid():
     assert len(names) == len(set(names))
     assert len({s.order for s in specs}) == len(specs)
     for s in specs:
-        assert s.source in {"timm", "timm_ctranspath", "hf_transformers"}
-        assert s.embedding in {"pooled", "cls", "cls_mean", "feature_map_mean"}
+        assert s.source in {"timm", "timm_ctranspath", "hf_transformers", "conch"}
+        assert s.embedding in {"pooled", "cls", "cls_mean", "feature_map_mean", "image_embed"}
         assert (s.mean is None) == (s.std is None)
+    assert len(specs) == 20 and sum(s.gated for s in specs) == 7
 
 
 def test_slide_type_from_filename():

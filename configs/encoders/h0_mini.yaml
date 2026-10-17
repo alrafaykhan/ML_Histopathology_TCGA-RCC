@@ -1,0 +1,13 @@
+name: h0_mini
+tier: "1b"
+order: 12
+source: timm
+model_id: hf-hub:bioptimus/H0-mini
+embedding: cls_mean
+gated: true
+licence: cc-by-nc-nd-4.0
+mean: [0.707223, 0.578729, 0.703617]
+std: [0.211883, 0.230117, 0.177517]
+kwargs:
+  mlp_layer: SwiGLUPacked
+  act_layer: SiLU

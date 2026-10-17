@@ -1,7 +1,8 @@
 """Patch encoder registry. Each encoder is described by ``configs/encoders/<name>.yaml``.
 
 Loading recipes and embedding choices follow each model card; the non-timm recipes
-(CTransPath, Phikon, kaiko, Midnight) match TRIDENT (mahmoodlab/TRIDENT @ e4c98b2).
+(CTransPath, Phikon, kaiko, Midnight, CONCH) and the gated timm recipes (UNI, UNI2-h,
+Virchow2, H-optimus-1, H0-mini, Prov-GigaPath) match TRIDENT (mahmoodlab/TRIDENT @ e4c98b2).
 """
 
 from __future__ import annotations
@@ -26,9 +27,9 @@ class EncoderSpec:
     name: str
     tier: str
     order: int
-    source: str  # timm | timm_ctranspath | hf_transformers
+    source: str  # timm | timm_ctranspath | hf_transformers | conch
     model_id: str
-    embedding: str  # pooled | cls | cls_mean | feature_map_mean
+    embedding: str  # pooled | cls | cls_mean | feature_map_mean | image_embed
     gated: bool = False
     licence: str = ""
     input_size: int = 224
@@ -67,16 +68,28 @@ class _ConvStem(nn.Module):
         layers.append(nn.Conv2d(c_in, embed_dim, 1))
         self.proj = nn.Sequential(*layers)
         self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
+        img_size = (img_size, img_size) if isinstance(img_size, int) else tuple(img_size)
+        self.img_size, self.patch_size = img_size, (patch_size, patch_size)
+        self.grid_size = (img_size[0] // patch_size, img_size[1] // patch_size)
+        self.num_patches = self.grid_size[0] * self.grid_size[1]
 
     def forward(self, x):
         return self.norm(self.proj(x).permute(0, 2, 3, 1))
+
+
+def _timm_kwargs(kwargs: dict) -> dict:
+    """Resolve layer names given as strings in YAML (e.g. ``mlp_layer: SwiGLUPacked``)."""
+    import timm.layers
+
+    layers = {"SwiGLUPacked": timm.layers.SwiGLUPacked, "SiLU": nn.SiLU, "GELU": nn.GELU}
+    return {k: layers.get(v, v) if isinstance(v, str) else v for k, v in kwargs.items()}
 
 
 def _build_backbone(spec: EncoderSpec) -> tuple[nn.Module, tuple, tuple]:
     if spec.source in ("timm", "timm_ctranspath"):
         import timm
 
-        kwargs = dict(spec.kwargs)
+        kwargs = _timm_kwargs(spec.kwargs)
         if spec.source == "timm_ctranspath":
             kwargs["embed_layer"] = _ConvStem
         kwargs.setdefault("num_classes", 0)
@@ -91,6 +104,12 @@ def _build_backbone(spec: EncoderSpec) -> tuple[nn.Module, tuple, tuple]:
 
         model = AutoModel.from_pretrained(spec.model_id, **spec.kwargs)
         return model, tuple(spec.mean or IMAGENET_MEAN), tuple(spec.std or IMAGENET_STD)
+
+    if spec.source == "conch":
+        from conch.open_clip_custom import create_model_from_pretrained
+
+        model, _ = create_model_from_pretrained("conch_ViT-B-16", spec.model_id)
+        return model, tuple(spec.mean), tuple(spec.std)
 
     raise ValueError(f"unknown encoder source: {spec.source}")
 
@@ -116,6 +135,8 @@ class PatchEncoder(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.preprocess(x)
+        if self.spec.source == "conch":
+            return self.backbone.encode_image(x, proj_contrast=False, normalize=False)
         if self.spec.source == "hf_transformers":
             tokens = self.backbone(pixel_values=x).last_hidden_state
             if self.spec.embedding == "cls":
@@ -125,6 +146,10 @@ class PatchEncoder(nn.Module):
             raise ValueError(f"unsupported embedding for transformers: {self.spec.embedding}")
         if self.spec.embedding in ("pooled", "cls"):
             return self.backbone(x)
+        if self.spec.embedding == "cls_mean":
+            tokens = self.backbone.forward_features(x)
+            prefix = self.backbone.num_prefix_tokens
+            return torch.cat([tokens[:, 0], tokens[:, prefix:].mean(1)], dim=-1)
         if self.spec.embedding == "feature_map_mean":
             fmap = self.backbone(x)[-1]
             return fmap.mean(dim=(2, 3))

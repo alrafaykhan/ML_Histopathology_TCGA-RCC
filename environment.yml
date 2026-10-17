@@ -37,3 +37,5 @@ dependencies:
       - nvidia-ml-py==13.615.71
       - mlflow==3.17.0
       - idc-index==0.13.1
+      # installed with --no-deps so it cannot replace the pinned torch build
+      - conch @ git+https://github.com/Mahmoodlab/CONCH.git@141cc09c7d4ff33d8eda562bd75169b457f71a62

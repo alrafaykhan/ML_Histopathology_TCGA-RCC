@@ -155,7 +155,7 @@ def run_benchmark(args, cfg) -> None:
     x = torch.from_numpy(patches).permute(0, 3, 1, 2).contiguous().pin_memory()
     print(f"{len(x)} patches loaded from {args.patches}", flush=True)
 
-    specs = list_encoders(include_gated=False)
+    specs = list_encoders()
     if args.encoders:
         specs = [s for s in specs if s.name in args.encoders]
 
@@ -241,11 +241,10 @@ def fmt(value) -> str:
 def write_plan(args, cfg) -> None:
     """Regenerate the throughput section of reports/compute_plan.md from the benchmark CSV."""
     bench = pd.read_csv(args.out).drop_duplicates("encoder", keep="last").sort_values("order")
-    files = pd.read_csv(ROOT / cfg["paths"]["manifests"] / "gdc_open_svs_files.csv")
-    files = files[files.sample_type.isin(["Primary Tumor", "Solid Tissue Normal"])]
-    n_all = len(files)
-    n_frozen = int((files.slide_type == "frozen").sum())
-    n_ffpe = int((files.slide_type == "ffpe").sum())
+    cohort = pd.read_csv(ROOT / cfg["paths"]["cohort"])
+    sel = cohort[cohort["selected"]]
+    n_all = len(sel)
+    n_ffpe = int(sel["track"].isin(["B", "C"]).sum())
     cap = cfg["tiling"]["max_patches_per_slide"]
     decode = jpeg_decode_rate(np.load(args.patches), cfg["tiling"]["jpeg_quality"])
     loader_ceiling = decode * cfg["loader"]["num_workers"]
@@ -260,8 +259,9 @@ def write_plan(args, cfg) -> None:
         f"`scripts/benchmark_encoders.py`, {platform.node()}. Throughput includes host-to-device "
         "copy and normalisation; JPEG decoding is measured separately below.",
         "",
-        f"Slides in scope (open SVS, primary tumour + solid tissue normal): {n_all} "
-        f"(frozen {n_frozen}, FFPE {n_ffpe}); before QC, so estimates are upper bounds. "
+        f"Selected slides (`data/cohort.csv`): {n_all}; FFPE 4-class task (Tracks B + C) "
+        f"{n_ffpe}, paired frozen subset (Track A) {n_all - n_ffpe}. Counts are before QC, "
+        "so estimates are upper bounds. "
         f"Estimate = slides x {cap} patches / throughput.",
         "",
         f"DataLoader ceiling: JPEG decode {decode:.0f} patches/s per core, about "
@@ -274,7 +274,7 @@ def write_plan(args, cfg) -> None:
         "no tensor cores, so float16 is not automatically faster.",
         "",
         "| # | Encoder | Tier | Params (M) | Dim | fp16 cos | fp32/s | fp16/s | Used | Batch "
-        "| Peak VRAM (GB) | Max temp (C) | Track A (h) | All slides (h) | Status |",
+        "| Peak VRAM (GB) | Max temp (C) | FFPE B+C (h) | All selected (h) | Status |",
         "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     total_h = 0.0
@@ -286,7 +286,7 @@ def write_plan(args, cfg) -> None:
             )
             continue
         eff = min(r.patches_per_s, loader_ceiling)
-        h_a = n_frozen * cap / eff / 3600
+        h_a = n_ffpe * cap / eff / 3600
         h_all = n_all * cap / eff / 3600
         total_h += h_all
         if h_all * 3600 > limit_days * SECONDS_PER_DAY:
@@ -305,13 +305,16 @@ def write_plan(args, cfg) -> None:
         f"Total GPU time, benchmarked encoders, all slides: {total_h:.0f} h "
         f"({total_h / 24:.1f} days).",
         "",
-        "Not benchmarked (gated on Hugging Face, no access token yet): CONCH, H0-mini, UNI, "
-        "Virchow2, UNI2-h, H-optimus-1, Prov-GigaPath.",
-        "",
+    ]
+    failed = bench.loc[bench.status != "ok", "encoder"].tolist()
+    if failed:
+        lines += [f"Not benchmarked (see Status): {', '.join(failed)}.", ""]
+    lines += [
         "### Run order",
         "",
         "Tier order as specified (1a, 1b, 2, 3; within a tier by `order` in "
-        "`configs/encoders/*.yaml`), Track A (frozen) slides before Track B (FFPE).",
+        "`configs/encoders/*.yaml`); FFPE slides (Tracks B, C) before the paired frozen "
+        "subset (Track A), following the download order.",
     ]
     if slow:
         lines += ["", f"### Encoders over {limit_days} days", ""]

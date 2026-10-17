@@ -1,0 +1,13 @@
+name: h_optimus_1
+tier: "3"
+order: 18
+source: timm
+model_id: hf-hub:bioptimus/H-optimus-1
+embedding: cls
+gated: true
+licence: bioptimus non-commercial
+mean: [0.707223, 0.578729, 0.703617]
+std: [0.211883, 0.230117, 0.177517]
+kwargs:
+  init_values: 1.0e-5
+  dynamic_img_size: false
