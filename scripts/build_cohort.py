@@ -17,6 +17,7 @@ from src.data.cohort import (  # noqa: E402
     build_cohort,
     gdc_manifest,
     query_primary_diagnoses,
+    select_frozen_subset,
     select_slides,
     track_of,
 )
@@ -68,10 +69,12 @@ def summary_md(cohort: pd.DataFrame, excluded: pd.DataFrame) -> str:
         "",
         "## Tracks",
         "",
-        "Track A: frozen sections (TS/BS) for all four classes. "
-        "Track B: FFPE diagnostic slides (DX) for the three tumor classes; the FFPE normals "
-        "are listed but not selected. Selected = one slide per patient and class "
-        "(`selected` column in `data/cohort.csv`).",
+        "Track B: FFPE diagnostic slides (DX) for the three tumor classes, one per patient "
+        "and class; the 12 FFPE normals are listed but not selected (FFPE normals come from "
+        "CPTAC-CCRCC, added separately). Track A: frozen sections (TS/BS), restricted to the "
+        "paired subset: frozen tumour slides of patients whose FFPE slide is selected, plus "
+        "frozen normals sampled per project. Downloaded after Track B. Selected = `selected` "
+        "column in `data/cohort.csv`.",
         "",
     ]
     rows = []
@@ -181,6 +184,16 @@ def main() -> None:
     cohort["track"] = track_of(cohort)
     cohort["selected"] = select_slides(
         cohort, tracks_cfg["classes"], tracks_cfg["slides_per_patient_class"]
+    )
+    subset = tracks_cfg["frozen_subset"]
+    priority_path = ROOT / subset["priority"]
+    priority = set(priority_path.read_text().split()) if priority_path.exists() else set()
+    cohort["selected"] = select_frozen_subset(
+        cohort,
+        subset["tumor_per_class"],
+        subset["normal_per_project"],
+        seed=cfg["seed"],
+        priority=priority,
     )
     cohort["batch"] = assign_batches(
         cohort, cfg["download"]["batch_gb"], tracks_cfg["order"], seed=cfg["seed"]

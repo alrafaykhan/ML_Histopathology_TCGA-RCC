@@ -1,6 +1,12 @@
 import pandas as pd
 
-from src.data.cohort import assign_batches, build_cohort, parse_slide_name, select_slides
+from src.data.cohort import (
+    assign_batches,
+    build_cohort,
+    parse_slide_name,
+    select_frozen_subset,
+    select_slides,
+)
 
 LABELS = {"TCGA-KIRC": "ccRCC", "TCGA-KIRP": "pRCC", "TCGA-KICH": "chRCC", "normal": "Normal"}
 UUID = "ebb876a2-ae65-4a58-90e7-9da5e5a71426"
@@ -92,3 +98,28 @@ def test_select_and_batches():
     assert batch[3] > max(frozen_batches)
     sizes = cohort[cohort["selected"]].groupby(batch)["file_size"].sum()
     assert (sizes[sizes.index.isin(frozen_batches)] <= 20e9).all()
+
+
+def test_frozen_subset_is_paired_and_prefers_downloaded():
+    rows = []
+    for i in range(6):
+        p = f"P{i}"
+        rows.append((f"{p}-DX1", p, "ccRCC", "B", "TCGA-KIRC"))
+        rows.append((f"{p}-TS1", p, "ccRCC", "A", "TCGA-KIRC"))
+    rows.append(("Q0-TS1", "Q0", "ccRCC", "A", "TCGA-KIRC"))  # frozen tumour without FFPE pair
+    for i in range(4):
+        rows.append((f"N{i}-11-TS1", f"N{i}", "Normal", "A", "TCGA-KIRP"))
+    rows.append(("P5-11-TS1", "P5", "Normal", "A", "TCGA-KIRC"))
+    cohort = pd.DataFrame(rows, columns=["slide_id", "patient_id", "label", "track", "project"])
+    cohort["selected"] = True
+
+    sel = select_frozen_subset(
+        cohort, {"ccRCC": 3}, normal_per_project=2, seed=0, priority={"P4-TS1", "N3-11-TS1"}
+    )
+    chosen = set(cohort.loc[sel, "slide_id"])
+    frozen_tumours = {s for s in chosen if s.endswith("-TS1") and "-11-" not in s}
+    assert len(frozen_tumours) == 3 and "Q0-TS1" not in chosen and "P4-TS1" in chosen
+    assert all(f"{s[:2]}-DX1" in chosen for s in frozen_tumours)
+    assert sum(s.startswith("N") for s in chosen) == 2 and "N3-11-TS1" in chosen
+    assert "P5-11-TS1" in chosen
+    assert all(cohort.loc[cohort["track"] == "B", "slide_id"].isin(chosen))

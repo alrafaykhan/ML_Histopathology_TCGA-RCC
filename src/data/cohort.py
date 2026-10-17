@@ -165,6 +165,56 @@ def select_slides(
     return in_scope & (rank < per_patient)
 
 
+def select_frozen_subset(
+    cohort: pd.DataFrame,
+    tumor_per_class: dict[str, int | str],
+    normal_per_project: int,
+    seed: int,
+    priority: set[str] = frozenset(),
+) -> pd.Series:
+    """Restrict selected frozen (Track A) slides to the paired-robustness subset.
+
+    Tumour slides are kept only for patients whose FFPE slide of the same class is
+    selected, so every frozen tumour slide has an FFPE partner; ``tumor_per_class`` gives
+    the number of patients per class (``"all"`` keeps every paired patient). Normal slides
+    are sampled per source project, preferring patients with a selected FFPE tumour slide.
+    Slide ids in ``priority`` (already downloaded) are taken first; the rest are drawn
+    with ``seed``. Expects ``track`` and ``selected`` columns; returns the new ``selected``.
+    """
+    sel = cohort["selected"].copy()
+    frozen = cohort["selected"] & (cohort["track"] == "A")
+    ffpe_pairs = set(
+        zip(
+            cohort.loc[cohort["selected"] & (cohort["track"] == "B"), "patient_id"],
+            cohort.loc[cohort["selected"] & (cohort["track"] == "B"), "label"],
+            strict=True,
+        )
+    )
+    ffpe_patients = {p for p, _ in ffpe_pairs}
+
+    def take(candidates: pd.DataFrame, n: int | str, prefer: pd.Series) -> pd.Index:
+        rng_order = candidates.sample(frac=1, random_state=seed)
+        key = (~rng_order["slide_id"].isin(priority)).astype(int) * 2 + (
+            ~prefer.reindex(rng_order.index)
+        ).astype(int)
+        ordered = rng_order.assign(_key=key).sort_values("_key", kind="stable")
+        return ordered.index if n == "all" else ordered.index[: int(n)]
+
+    keep = []
+    for label, n in tumor_per_class.items():
+        cand = cohort[frozen & (cohort["label"] == label)]
+        paired = [(p, label) in ffpe_pairs for p in cand["patient_id"]]
+        cand = cand[paired]
+        keep += list(take(cand, n, pd.Series(True, index=cand.index)))
+    normals = cohort[frozen & (cohort["label"] == "Normal")]
+    for _, cand in normals.groupby("project"):
+        keep += list(take(cand, normal_per_project, cand["patient_id"].isin(ffpe_patients)))
+
+    sel[frozen] = False
+    sel[keep] = True
+    return sel
+
+
 def assign_batches(
     cohort: pd.DataFrame, batch_gb: float, track_order: list[str], seed: int
 ) -> pd.Series:
