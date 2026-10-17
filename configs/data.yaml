@@ -29,17 +29,21 @@ gdc:
     normal: Normal
 
 tracks:
-  order: [A, B]  # A = frozen (TS/BS), B = FFPE (DX); downloaded in this order
+  order: [B, A]  # B = FFPE (DX), A = frozen (TS/BS); downloaded in this order
   classes:
     A: [ccRCC, pRCC, chRCC, Normal]
-    B: [ccRCC, pRCC, chRCC]  # only 12 FFPE normals from one site; kept in cohort, not trained
+    B: [ccRCC, pRCC, chRCC]  # only 12 FFPE normals from one site; FFPE normals come from CPTAC
   slides_per_patient_class: 1
+  frozen_subset:  # Track A = frozen slides paired with selected FFPE tumours + frozen normals
+    tumor_per_class: {ccRCC: 150, pRCC: 150, chRCC: all}
+    normal_per_project: 50
+    priority: data/manifests/frozen_priority.txt  # frozen slides already downloaded
 
 download:
   batch_gb: 20
 
 streaming:
-  max_raw_gb: 100  # min(100, free_wsl_gb - 170), floor 30; set in Phase 0
+  max_raw_gb: 40  # download (~0.45 MB/s) is far slower than tiling, so a small buffer suffices
   min_free_margin_gb: 30
   min_free_windows_d_gb: 10
   stop_if_wsl_free_below_gb: 60

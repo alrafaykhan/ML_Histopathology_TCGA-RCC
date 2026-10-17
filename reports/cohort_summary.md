@@ -1,6 +1,6 @@
 # Cohort summary
 
-Generated 2026-10-12 from the GDC API (open-access SVS files, TCGA-KIRC, TCGA-KIRP, TCGA-KICH; sample types 01 and 11).
+Generated 2026-10-17 from the GDC API (open-access SVS files, TCGA-KIRC, TCGA-KIRP, TCGA-KICH; sample types 01 and 11).
 
 Retained: 3,240 slides from 929 patients and 58 tissue source sites, 1,506.3 GB. Excluded: 32 files.
 
@@ -26,28 +26,28 @@ Retained: 3,240 slides from 929 patients and 58 tissue source sites, 1,506.3 GB.
 
 ## Tracks
 
-Track A: frozen sections (TS/BS) for all four classes. Track B: FFPE diagnostic slides (DX) for the three tumor classes; the FFPE normals are listed but not selected. Selected = one slide per patient and class (`selected` column in `data/cohort.csv`).
+Track B: FFPE diagnostic slides (DX) for the three tumor classes, one per patient and class; the 12 FFPE normals are listed but not selected (FFPE normals come from CPTAC-CCRCC, added separately). Track A: frozen sections (TS/BS), restricted to the paired subset: frozen tumour slides of patients whose FFPE slide is selected, plus frozen normals sampled per project. Downloaded after Track B. Selected = `selected` column in `data/cohort.csv`.
 
 | track   | class   |   slides |   patients |   sites |   size_gb |   selected |   selected_gb |
 |:--------|:--------|---------:|-----------:|--------:|----------:|-----------:|--------------:|
-| A       | ccRCC   |     1075 |        522 |      18 |     228.6 |        522 |         118.6 |
-| A       | pRCC    |      378 |        284 |      33 |      86.7 |        284 |          67.9 |
-| A       | chRCC   |      146 |         90 |       6 |     111   |         90 |          57.4 |
-| A       | Normal  |      716 |        589 |      25 |     157.6 |        589 |         134   |
-| A       | total   |     2315 |        902 |      58 |     583.9 |       1485 |         377.9 |
+| A       | ccRCC   |     1075 |        522 |      18 |     228.6 |        150 |          35   |
+| A       | pRCC    |      378 |        284 |      33 |      86.7 |        150 |          37.7 |
+| A       | chRCC   |      146 |         90 |       6 |     111   |         86 |          54.3 |
+| A       | Normal  |      716 |        589 |      25 |     157.6 |        150 |          54   |
+| A       | total   |     2315 |        902 |      58 |     583.9 |        536 |         181.1 |
 | B       | ccRCC   |      505 |        500 |      17 |     460.8 |        500 |         455.1 |
 | B       | pRCC    |      299 |        275 |      31 |     307.8 |        275 |         279.2 |
 | B       | chRCC   |      109 |        109 |       6 |     140.9 |        109 |         140.9 |
 | B       | Normal  |       12 |         12 |       1 |      12.9 |          0 |           0   |
 | B       | total   |      925 |        884 |      54 |     922.4 |        884 |         875.2 |
 
-Download batches: 66 (manifests in `data/manifests/batches/`).
+Download batches: 56 (manifests in `data/manifests/batches/`).
 
 |   batch | track   |   slides |   size_gb |   ccRCC |   pRCC |   chRCC |   Normal |
 |--------:|:--------|---------:|----------:|--------:|-------:|--------:|---------:|
-|       1 | A       |       53 |      19.9 |      13 |     13 |      13 |       14 |
-|       2 | A       |       56 |      19.8 |      14 |     14 |      14 |       14 |
-|       3 | A       |       66 |      20   |      17 |     16 |      17 |       16 |
+|       1 | B       |       18 |      18.4 |       6 |      6 |       6 |        0 |
+|       2 | B       |       21 |      19.7 |       7 |      7 |       7 |        0 |
+|       3 | B       |       16 |      19.3 |       6 |      5 |       5 |        0 |
 
 Patients with more than one slide in the same track and class (kept; splits are patient-level):
 
