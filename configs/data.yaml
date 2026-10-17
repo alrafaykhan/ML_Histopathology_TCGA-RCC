@@ -46,6 +46,11 @@ cptac:
   labels: {tumor: ccRCC, Normal: Normal}
   priority: data/manifests/cptac_pilot.csv  # pilot series already downloaded
 
+splits:
+  test_frac: 0.2
+  n_folds: 5
+  site_test_frac: 0.2  # target fraction of each class's TCGA patients in held-out sites
+
 download:
   batch_gb: 20
 
