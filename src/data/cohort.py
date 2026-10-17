@@ -140,6 +140,49 @@ def build_cohort(
     return cohort.reset_index(drop=True), excluded.reset_index(drop=True)
 
 
+def cptac_cohort(
+    series: pd.DataFrame, project: str, labels: dict[str, str], priority: set[str] = frozenset()
+) -> pd.DataFrame:
+    """Cohort rows (Track C) for CPTAC slides from ``src.data.idc.query_sm_series``.
+
+    ``labels`` maps IDC tissue ("tumor", "Normal") to class names. One slide per patient
+    and class is selected, preferring series in ``priority`` (already downloaded), then
+    the lowest slide id. ``file_id`` and ``file_name`` hold the DICOM series UID; the raw
+    slide is a directory of DICOM instances. CPTAC records no tissue source site, so
+    ``site`` is the collection name.
+    """
+    df = series[series["tissue"].isin(labels)].copy()
+    df["label"] = df["tissue"].map(labels)
+    df["sample_type"] = df["tissue"].map({"tumor": "Primary Tumor", "Normal": "Normal"})
+    df = df.assign(
+        project=project,
+        slide_type="ffpe",
+        site=project,
+        file_size=(df["size_mb"] * 2**20).round().astype("int64"),
+        md5="",
+        file_id=df["series_uid"],
+        file_name=df["series_uid"],
+        slide_section="",
+        primary_diagnosis="",
+        track="C",
+        source="idc",
+    )
+    rank = (
+        df.assign(_p=~df["series_uid"].isin(priority))
+        .sort_values(["_p", "slide_id"])
+        .groupby(["patient_id", "label"])
+        .cumcount()
+        .reindex(df.index)
+    )
+    df["selected"] = rank == 0
+    columns = [
+        "slide_id", "patient_id", "project", "sample_type", "label", "slide_type", "site",
+        "file_size", "md5", "file_id", "file_name", "slide_section", "primary_diagnosis",
+        "track", "selected", "source",
+    ]  # fmt: skip
+    return df[columns].sort_values(["label", "slide_id"]).reset_index(drop=True)
+
+
 def track_of(cohort: pd.DataFrame) -> pd.Series:
     """Track A = frozen sections (TS/BS); Track B = FFPE diagnostic slides (DX)."""
     return cohort["slide_type"].map({"frozen": "A", "ffpe": "B"})
@@ -225,7 +268,7 @@ def assign_batches(
     Returns 1-based batch numbers (NA for unselected slides).
     """
     batch = pd.Series(pd.NA, index=cohort.index, dtype="Int64")
-    track = track_of(cohort)
+    track = cohort["track"] if "track" in cohort else track_of(cohort)
     limit = batch_gb * 1e9
     current, filled = 1, 0.0
     for t in track_order:

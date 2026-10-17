@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT))
 from src.data.cohort import (  # noqa: E402
     assign_batches,
     build_cohort,
+    cptac_cohort,
     gdc_manifest,
     query_primary_diagnoses,
     select_frozen_subset,
@@ -22,6 +23,7 @@ from src.data.cohort import (  # noqa: E402
     track_of,
 )
 from src.data.gdc import query_slide_files  # noqa: E402
+from src.data.idc import query_sm_series  # noqa: E402
 from src.utils import load_config  # noqa: E402
 
 CLASSES = ["ccRCC", "pRCC", "chRCC", "Normal"]
@@ -195,6 +197,15 @@ def main() -> None:
         seed=cfg["seed"],
         priority=priority,
     )
+    cohort["source"] = "gdc"
+
+    cp = cfg["cptac"]
+    series = query_sm_series(cp["collection"])
+    pilot_path = ROOT / cp["priority"]
+    pilot = set(pd.read_csv(pilot_path)["series_uid"]) if pilot_path.exists() else set()
+    cptac = cptac_cohort(series, cp["project"], cp["labels"], priority=pilot)
+    print(f"IDC {cp['collection']}: {len(cptac)} slides, {cptac['patient_id'].nunique()} patients")
+    cohort = pd.concat([cohort, cptac], ignore_index=True)
     cohort["batch"] = assign_batches(
         cohort, cfg["download"]["batch_gb"], tracks_cfg["order"], seed=cfg["seed"]
     )
@@ -206,13 +217,20 @@ def main() -> None:
     manifest_dir = ROOT / cfg["paths"]["manifests"]
     manifest_dir.mkdir(parents=True, exist_ok=True)
     for track in tracks_cfg["order"]:
+        if track == "C":
+            continue
         gdc_manifest(cohort[cohort["selected"] & (cohort["track"] == track)]).to_csv(
             manifest_dir / f"gdc_manifest_track{track}.txt", sep="\t", index=False
         )
     batch_dir = manifest_dir / "batches"
     batch_dir.mkdir(exist_ok=True)
     for b, g in cohort[cohort["selected"]].groupby("batch"):
-        gdc_manifest(g).to_csv(batch_dir / f"batch_{b:03d}.txt", sep="\t", index=False)
+        if (g["source"] == "idc").all():
+            g[["slide_id", "patient_id", "label", "file_id", "file_size"]].rename(
+                columns={"file_id": "series_uid"}
+            ).to_csv(batch_dir / f"batch_{b:03d}_idc.csv", index=False)
+        else:
+            gdc_manifest(g).to_csv(batch_dir / f"batch_{b:03d}.txt", sep="\t", index=False)
 
     report = ROOT / cfg["paths"]["reports"] / "cohort_summary.md"
     report.write_text(summary_md(cohort, excluded))

@@ -3,6 +3,7 @@ import pandas as pd
 from src.data.cohort import (
     assign_batches,
     build_cohort,
+    cptac_cohort,
     parse_slide_name,
     select_frozen_subset,
     select_slides,
@@ -123,3 +124,20 @@ def test_frozen_subset_is_paired_and_prefers_downloaded():
     assert sum(s.startswith("N") for s in chosen) == 2 and "N3-11-TS1" in chosen
     assert "P5-11-TS1" in chosen
     assert all(cohort.loc[cohort["track"] == "B", "slide_id"].isin(chosen))
+
+
+def test_cptac_cohort_one_slide_per_patient_prefers_priority():
+    series = pd.DataFrame(
+        {
+            "series_uid": ["u1", "u2", "u3", "u4"],
+            "slide_id": ["C3L-1-21", "C3L-1-22", "C3L-1-26", "C3N-2-21"],
+            "patient_id": ["C3L-1", "C3L-1", "C3L-1", "C3N-2"],
+            "tissue": ["tumor", "tumor", "Normal", "tumor"],
+            "size_mb": [100.0, 120.0, 50.0, 80.0],
+        }
+    )
+    labels = {"tumor": "ccRCC", "Normal": "Normal"}
+    df = cptac_cohort(series, "CPTAC-CCRCC", labels, priority={"u2"}).set_index("file_id")
+    assert df.loc[["u2", "u3", "u4"], "selected"].all() and not df.at["u1", "selected"]
+    assert (df["track"] == "C").all() and (df["slide_type"] == "ffpe").all()
+    assert df.at["u3", "label"] == "Normal" and df.at["u1", "file_size"] == 100 * 2**20

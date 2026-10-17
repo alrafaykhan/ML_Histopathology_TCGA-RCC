@@ -2,27 +2,27 @@
 
 Generated 2026-10-17 from the GDC API (open-access SVS files, TCGA-KIRC, TCGA-KIRP, TCGA-KICH; sample types 01 and 11).
 
-Retained: 3,240 slides from 929 patients and 58 tissue source sites, 1,506.3 GB. Excluded: 32 files.
+Retained: 4,022 slides from 1,151 patients and 59 tissue source sites, 1,732.2 GB. Excluded: 32 files.
 
 ## Slides per class and slide type
 
 | label   |   ffpe |   frozen |   total |
 |:--------|-------:|---------:|--------:|
-| ccRCC   |    505 |     1075 |    1580 |
+| ccRCC   |   1029 |     1075 |    2104 |
 | pRCC    |    299 |      378 |     677 |
 | chRCC   |    109 |      146 |     255 |
-| Normal  |     12 |      716 |     728 |
-| total   |    925 |     2315 |    3240 |
+| Normal  |    270 |      716 |     986 |
+| total   |   1707 |     2315 |    4022 |
 
 ## Patients per class and slide type
 
 | label   |   ffpe |   frozen |   total |
 |:--------|-------:|---------:|--------:|
-| ccRCC   |    500 |      522 |     523 |
+| ccRCC   |    722 |      522 |     745 |
 | pRCC    |    275 |      284 |     290 |
 | chRCC   |    109 |       90 |     113 |
-| Normal  |     12 |      589 |     601 |
-| total   |    884 |      902 |     929 |
+| Normal  |    217 |      589 |     806 |
+| total   |   1106 |      902 |    1151 |
 
 ## Tracks
 
@@ -40,8 +40,13 @@ Track B: FFPE diagnostic slides (DX) for the three tumor classes, one per patien
 | B       | chRCC   |      109 |        109 |       6 |     140.9 |        109 |         140.9 |
 | B       | Normal  |       12 |         12 |       1 |      12.9 |          0 |           0   |
 | B       | total   |      925 |        884 |      54 |     922.4 |        884 |         875.2 |
+| C       | ccRCC   |      524 |        222 |       1 |     158.7 |        222 |          58.4 |
+| C       | pRCC    |        0 |          0 |       0 |       0   |          0 |           0   |
+| C       | chRCC   |        0 |          0 |       0 |       0   |          0 |           0   |
+| C       | Normal  |      258 |        205 |       1 |      67.2 |        205 |          49.7 |
+| C       | total   |      782 |        222 |       1 |     225.9 |        427 |         108.1 |
 
-Download batches: 56 (manifests in `data/manifests/batches/`).
+Download batches: 62 (manifests in `data/manifests/batches/`).
 
 |   batch | track   |   slides |   size_gb |   ccRCC |   pRCC |   chRCC |   Normal |
 |--------:|:--------|---------:|----------:|--------:|-------:|--------:|---------:|
@@ -59,6 +64,8 @@ Patients with more than one slide in the same track and class (kept; splits are 
 | A       | pRCC    |         84 |
 | B       | ccRCC   |          4 |
 | B       | pRCC    |         11 |
+| C       | Normal  |         47 |
+| C       | ccRCC   |        151 |
 
 ## Tissue source sites
 
@@ -66,6 +73,7 @@ Slides per site and class (sites with at least 10 slides; remaining sites pooled
 
 | site             |   ccRCC |   pRCC |   chRCC |   Normal |   total |
 |:-----------------|--------:|-------:|--------:|---------:|--------:|
+| CPTAC-CCRCC      |     524 |      0 |       0 |      258 |     782 |
 | BP               |     428 |      0 |       0 |      183 |     611 |
 | B0               |     317 |      0 |       0 |      147 |     464 |
 | CJ               |     221 |      0 |       0 |       82 |     303 |
@@ -80,8 +88,8 @@ Slides per site and class (sites with at least 10 slides; remaining sites pooled
 | B2               |      46 |      0 |       0 |       18 |      64 |
 | KO               |       0 |      0 |      42 |       14 |      56 |
 | UW               |       0 |      0 |      38 |       12 |      50 |
-| CW               |      30 |      0 |       0 |       16 |      46 |
 | B9               |       0 |     43 |       0 |        3 |      46 |
+| CW               |      30 |      0 |       0 |       16 |      46 |
 | 2Z               |       0 |     46 |       0 |        0 |      46 |
 | G7               |       0 |     36 |       0 |        0 |      36 |
 | KM               |       0 |      0 |      34 |        0 |      34 |
@@ -109,7 +117,7 @@ Slides per site and class (sites with at least 10 slides; remaining sites pooled
 | F9               |       0 |     10 |       0 |        0 |      10 |
 | other (17 sites) |      28 |     37 |       0 |        1 |      66 |
 
-Sites contributing slides of a single class: 33 of 58. Site and class are strongly associated, which motivates the site-held-out evaluation.
+Sites contributing slides of a single class: 33 of 59. Site and class are strongly associated, which motivates the site-held-out evaluation.
 
 ## Exclusions
 

@@ -29,15 +29,22 @@ gdc:
     normal: Normal
 
 tracks:
-  order: [B, A]  # B = FFPE (DX), A = frozen (TS/BS); downloaded in this order
+  order: [B, C, A]  # B = TCGA FFPE (DX), C = CPTAC FFPE (IDC), A = TCGA frozen (TS/BS)
   classes:
     A: [ccRCC, pRCC, chRCC, Normal]
     B: [ccRCC, pRCC, chRCC]  # only 12 FFPE normals from one site; FFPE normals come from CPTAC
+    C: [ccRCC, Normal]  # trained together with B as the FFPE 4-class task
   slides_per_patient_class: 1
   frozen_subset:  # Track A = frozen slides paired with selected FFPE tumours + frozen normals
     tumor_per_class: {ccRCC: 150, pRCC: 150, chRCC: all}
     normal_per_project: 50
     priority: data/manifests/frozen_priority.txt  # frozen slides already downloaded
+
+cptac:
+  collection: cptac_ccrcc  # NCI Imaging Data Commons, DICOM-WSI, CC BY 4.0
+  project: CPTAC-CCRCC
+  labels: {tumor: ccRCC, Normal: Normal}
+  priority: data/manifests/cptac_pilot.csv  # pilot series already downloaded
 
 download:
   batch_gb: 20
