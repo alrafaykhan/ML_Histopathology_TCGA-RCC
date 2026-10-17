@@ -1,4 +1,7 @@
-"""Download one batch of selected slides (resumable, md5-verified) with disk guards.
+"""Download one batch of selected slides with disk guards.
+
+GDC slides are resumable and md5-verified; IDC (CPTAC DICOM-WSI) series are fetched with
+s5cmd and verified against the per-instance sizes in the IDC index.
 
 Usage: python scripts/download_batch.py --batch 1
 """
@@ -21,7 +24,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.data.gdc import download_file  # noqa: E402
-from src.utils import load_config  # noqa: E402
+from src.data.idc import download_series, series_instances, verify_series  # noqa: E402
+from src.utils import load_config, path_bytes  # noqa: E402
 
 GB = 1e9
 
@@ -66,6 +70,38 @@ def check_disk(cfg: dict, raw_root: Path, pending_gb: float) -> None:
         sys.exit("stopping: " + "; ".join(problems))
 
 
+def download_idc(batch: pd.DataFrame, dest: dict, batch_no: int, log_path: Path) -> None:
+    """Fetch a batch of IDC series in one s5cmd transfer, then verify each series."""
+    out_dir = next(iter(dest.values())).parent
+    t0 = time.time()
+    download_series(batch["file_id"].tolist(), out_dir)
+    expected = series_instances(batch["file_id"].tolist()).groupby("SeriesInstanceUID")
+    new_log = not log_path.exists()
+    failures = 0
+    with open(log_path, "a", newline="") as fh:
+        log = csv.writer(fh)
+        if new_log:
+            log.writerow(["time", "batch", "slide_id", "file_id", "bytes", "seconds", "status"])
+        for i, r in batch.iterrows():
+            problem = verify_series(dest[i], expected.get_group(r.file_id))
+            status = f"failed: {problem}" if problem else "ok"
+            failures += bool(problem)
+            log.writerow(
+                [
+                    datetime.now().isoformat(timespec="seconds"),
+                    batch_no,
+                    r.slide_id,
+                    r.file_id,
+                    path_bytes(dest[i]),
+                    round(time.time() - t0),
+                    status,
+                ]
+            )
+    print(f"batch {batch_no} done: {len(batch) - failures} ok, {failures} failed", flush=True)
+    if failures:
+        sys.exit(1)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--batch", type=int, required=True)
@@ -88,15 +124,16 @@ def main() -> None:
             path.parent.mkdir(parents=True, exist_ok=True)
             os.replace(cached, path)
 
-    pending = sum(
-        r.file_size - (dest[i].stat().st_size if dest[i].exists() else 0)
-        for i, r in batch.iterrows()
-    )
+    pending = sum(max(0, r.file_size - path_bytes(dest[i])) for i, r in batch.iterrows())
     print(
         f"batch {args.batch}: {len(batch)} slides, {batch['file_size'].sum() / GB:.1f} GB, "
         f"classes {batch['label'].value_counts().to_dict()}"
     )
     check_disk(cfg, raw_root, pending / GB)
+
+    if (batch["source"] == "idc").all():
+        download_idc(batch, dest, args.batch, ROOT / cfg["paths"]["logs"] / "downloads.csv")
+        return
 
     log_path = ROOT / cfg["paths"]["logs"] / "downloads.csv"
     log_path.parent.mkdir(parents=True, exist_ok=True)

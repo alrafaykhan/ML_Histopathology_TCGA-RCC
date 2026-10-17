@@ -41,8 +41,10 @@ def query_sm_series(collection: str) -> pd.DataFrame:
     return df
 
 
-def download_series(series_uids: list[str], out_dir: str | Path) -> None:
-    """Download DICOM series into ``out_dir/<PatientID>/.../<SeriesInstanceUID>/``.
+def download_series(
+    series_uids: list[str], out_dir: str | Path, dir_template: str = "%SeriesInstanceUID"
+) -> None:
+    """Download DICOM series into ``out_dir/<dir_template>/`` (one directory per series).
 
     Uses the s5cmd transfer bundled with idc-index; completed files are skipped
     on re-run.
@@ -52,6 +54,31 @@ def download_series(series_uids: list[str], out_dir: str | Path) -> None:
     _client().download_from_selection(
         seriesInstanceUID=list(series_uids),
         downloadDir=str(out_dir),
-        dirTemplate="%PatientID/%SeriesInstanceUID",
+        dirTemplate=dir_template,
         quiet=False,
     )
+
+
+def series_instances(series_uids: list[str]) -> pd.DataFrame:
+    """Expected DICOM instances (``crdc_instance_uuid``, ``instance_size``) per series."""
+    client = IDCClient()
+    client.fetch_index("sm_instance_index")
+    idx = client.sm_instance_index
+    return idx.loc[
+        idx["SeriesInstanceUID"].isin(series_uids),
+        ["SeriesInstanceUID", "crdc_instance_uuid", "instance_size"],
+    ]
+
+
+def verify_series(series_dir: str | Path, instances: pd.DataFrame) -> str:
+    """Return "" if every expected instance is present with the indexed size, else a reason."""
+    have = {p.stem: p.stat().st_size for p in Path(series_dir).glob("*.dcm")}
+    missing = [u for u in instances["crdc_instance_uuid"] if u not in have]
+    if missing:
+        return f"{len(missing)} of {len(instances)} instances missing"
+    wrong = [
+        u
+        for u, size in zip(instances["crdc_instance_uuid"], instances["instance_size"], strict=True)
+        if have[u] != size
+    ]
+    return f"{len(wrong)} instances with wrong size" if wrong else ""

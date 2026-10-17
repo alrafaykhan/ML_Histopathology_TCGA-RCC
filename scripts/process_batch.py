@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import shutil
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
@@ -22,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.preprocessing.export import process_slide, verify_shard  # noqa: E402
-from src.utils import load_config  # noqa: E402
+from src.utils import load_config, path_bytes  # noqa: E402
 
 QC_COLUMNS = [
     "slide_id", "batch", "track", "label", "status", "reason", "level0_mpp", "width",
@@ -113,8 +114,11 @@ def main() -> None:
     freed = 0
     for path in jobs.values():
         if path.exists():
-            freed += path.stat().st_size
-            path.unlink()
+            freed += path_bytes(path)
+            if path.is_dir():
+                shutil.rmtree(path)
+            else:
+                path.unlink()
     print(f"deleted raw WSIs of the batch ({freed / 1e9:.1f} GB)")
 
 

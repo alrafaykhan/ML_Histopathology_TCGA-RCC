@@ -38,3 +38,23 @@ def get_device() -> str:
     import torch
 
     return "cuda" if torch.cuda.is_available() else "cpu"
+
+
+def wsi_open_path(path: str | Path) -> Path:
+    """File to pass to OpenSlide: the slide file itself, or for a DICOM-WSI series directory
+    one of its instances (OpenSlide finds the other instances in the same directory)."""
+    path = Path(path)
+    if path.is_dir():
+        instances = sorted(path.glob("*.dcm"))
+        if not instances:
+            raise FileNotFoundError(f"no DICOM instances in {path}")
+        return instances[0]
+    return path
+
+
+def path_bytes(path: str | Path) -> int:
+    """Size of a file, or total size of the files in a directory tree (0 if absent)."""
+    path = Path(path)
+    if path.is_dir():
+        return sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
+    return path.stat().st_size if path.exists() else 0

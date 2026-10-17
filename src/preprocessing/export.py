@@ -17,6 +17,7 @@ from PIL import Image
 
 from src.preprocessing.qc import laplacian_variance
 from src.preprocessing.tile import read_patch, sample_coords, tissue_grid
+from src.utils import wsi_open_path
 
 
 def slide_seed(slide_id: str, seed: int) -> int:
@@ -104,7 +105,7 @@ def process_slide(
     t0 = time.time()
     row = {"slide_id": slide_id, "status": "excluded", "reason": ""}
     try:
-        slide = openslide.OpenSlide(str(wsi_path))
+        slide = openslide.OpenSlide(str(wsi_open_path(wsi_path)))
     except Exception as err:  # noqa: BLE001 - corrupt or unsupported file
         row["reason"] = f"unreadable: {err}"
         return row
