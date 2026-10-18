@@ -21,13 +21,28 @@ def slide_mpp(slide: openslide.OpenSlide) -> float:
     raise ValueError("slide has neither MPP nor a known objective power")
 
 
-def tissue_mask(rgb: np.ndarray, min_area_frac: float = 0.0005) -> np.ndarray:
+def tissue_mask(
+    rgb: np.ndarray,
+    min_area_frac: float = 0.0005,
+    ignore: np.ndarray | None = None,
+    ink_clip_sat: int = 60,
+) -> np.ndarray:
     """Binary tissue mask: Otsu threshold on HSV saturation, morphological cleanup,
-    removal of small fragments and of near-black regions (pen, folds)."""
+    removal of small fragments and of near-black regions (pen, folds).
+
+    If more than half of the mask falls on ``ignore`` pixels (marker ink), strongly
+    saturated ink has pushed the Otsu threshold above pale H&E tissue; the threshold is
+    then recomputed with saturation clipped at ``ink_clip_sat``.
+    """
     hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
     sat = cv2.medianBlur(hsv[..., 1], 7)
     thr, _ = cv2.threshold(sat, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     mask = (sat > max(thr, 20)) & (hsv[..., 2] > 40)
+    if ignore is not None and (mask & ignore).sum() > 0.5 * max(mask.sum(), 1):
+        thr, _ = cv2.threshold(
+            np.minimum(sat, ink_clip_sat), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+        )
+        mask = (sat > max(thr, 20)) & (hsv[..., 2] > 40)
 
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     mask = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
@@ -59,8 +74,9 @@ def tissue_grid(
     w0, h0 = slide.dimensions
     scale = footprint / thumb_px_per_patch
     thumb = np.asarray(slide.get_thumbnail((int(w0 / scale), int(h0 / scale))).convert("RGB"))
-    tissue = tissue_mask(thumb)
-    pen = pen_mask(thumb) if exclude_pen else np.zeros_like(tissue)
+    ink = pen_mask(thumb)
+    tissue = tissue_mask(thumb, ignore=ink)
+    pen = ink if exclude_pen else np.zeros_like(tissue)
     usable = tissue & ~pen
 
     k = thumb_px_per_patch

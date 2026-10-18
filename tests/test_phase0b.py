@@ -3,6 +3,7 @@ import torch
 
 from scripts.prepare_bench_patches import slide_type
 from src.features.encoder_registry import _ConvStem, list_encoders
+from src.preprocessing.qc import pen_mask
 from src.preprocessing.tile import sample_coords, tissue_mask
 
 
@@ -30,6 +31,16 @@ def test_tissue_mask_finds_stained_region():
     mask = tissue_mask(img)
     assert mask[100, 100] and not mask[10, 10]
     assert 0.2 < mask.mean() < 0.3
+
+
+def test_tissue_mask_keeps_pale_tissue_next_to_ink():
+    img = np.full((200, 200, 3), 240, dtype=np.uint8)
+    img[50:150, 50:150] = (215, 185, 210)  # pale H&E, saturation ~36
+    img[160:180, 20:180] = (40, 60, 200)  # blue marker ink
+    ink = pen_mask(img)
+    assert not tissue_mask(img)[100, 100]  # ink drives Otsu above the tissue
+    mask = tissue_mask(img, ignore=ink)
+    assert mask[100, 100] and not mask[10, 10]
 
 
 def test_sample_coords_seeded_and_capped():
