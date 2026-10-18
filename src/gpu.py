@@ -73,6 +73,12 @@ class GpuMonitor:
         """Block while the GPU is too hot. Returns seconds spent paused."""
         if self.temperature() <= self.pause_c:
             return 0.0
+        import torch
+
+        # Finish queued kernels first so callers that subtract the pause from a timing
+        # do not also subtract compute.
+        if torch.cuda.is_initialized():
+            torch.cuda.synchronize()
         start = time.time()
         print(f"GPU at {self.temperature()} C > {self.pause_c} C; pausing", flush=True)
         while self.temperature() >= self.resume_c:
