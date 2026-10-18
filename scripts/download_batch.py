@@ -40,6 +40,24 @@ def dir_gb(path: Path) -> float:
     )
 
 
+def wait_for_raw_budget(cfg: dict, raw_root: Path, pending_gb: float, max_wait_h: float) -> None:
+    """Block until the raw WSI buffer has room for this batch or ``max_wait_h`` passes.
+
+    Used while the previous batch is still being tiled; its raw slides are deleted once
+    its shards are verified.
+    """
+    limit = cfg["streaming"]["max_raw_gb"]
+    deadline = time.time() + max_wait_h * 3600
+    raw_gb = dir_gb(raw_root)
+    if raw_gb + pending_gb > limit:
+        print(
+            f"raw {raw_gb:.1f} GB + pending {pending_gb:.1f} GB > {limit} GB; waiting", flush=True
+        )
+    while raw_gb + pending_gb > limit and time.time() < deadline:
+        time.sleep(60)
+        raw_gb = dir_gb(raw_root)
+
+
 def check_disk(cfg: dict, raw_root: Path, pending_gb: float) -> None:
     """Exit with a message if this batch would break the disk limits in configs/data.yaml."""
     s = cfg["streaming"]
@@ -107,6 +125,12 @@ def main() -> None:
     parser.add_argument("--batch", type=int, required=True)
     parser.add_argument("--config", default=str(ROOT / "configs" / "data.yaml"))
     parser.add_argument("--workers", type=int, default=None)
+    parser.add_argument(
+        "--wait-for-raw-h",
+        type=float,
+        default=0.0,
+        help="hours to wait for the raw buffer to free up before giving up",
+    )
     args = parser.parse_args()
     cfg = load_config(args.config)
 
@@ -129,6 +153,8 @@ def main() -> None:
         f"batch {args.batch}: {len(batch)} slides, {batch['file_size'].sum() / GB:.1f} GB, "
         f"classes {batch['label'].value_counts().to_dict()}"
     )
+    if args.wait_for_raw_h > 0:
+        wait_for_raw_budget(cfg, raw_root, pending / GB, args.wait_for_raw_h)
     check_disk(cfg, raw_root, pending / GB)
 
     if (batch["source"] == "idc").all():

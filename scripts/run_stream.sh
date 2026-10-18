@@ -16,7 +16,10 @@ proc_pid=""
 for b in $(seq "$FIRST" "$LAST"); do
   tag=$(printf "%03d" "$b")
   echo "$(date -Is) download batch $b"
-  if ! "$PY" -u scripts/download_batch.py --batch "$b" >> "logs/download_batch_$tag.log" 2>&1; then
+  # While the previous batch is still being tiled, wait for its raw slides to be deleted.
+  wait_args=()
+  [ -n "$proc_pid" ] && kill -0 "$proc_pid" 2>/dev/null && wait_args=(--wait-for-raw-h 6)
+  if ! "$PY" -u scripts/download_batch.py --batch "$b" "${wait_args[@]}" >> "logs/download_batch_$tag.log" 2>&1; then
     echo "$(date -Is) download batch $b failed; see logs/download_batch_$tag.log"
     break
   fi
