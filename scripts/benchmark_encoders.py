@@ -84,18 +84,35 @@ def precision_check(model, x, device: str, threshold: float) -> dict:
 
 
 def tune_batch(model, x, fp16: bool, device: str) -> int:
-    """Largest candidate batch size that runs two forward passes without OOM."""
+    """Fastest candidate batch size that fits in the VRAM cap.
+
+    Candidates are tried from largest to smallest; the search stops once a smaller
+    batch is slower than the best so far.
+    """
+    import torch
+
+    best_bs, best_rate = None, 0.0
     for bs in BATCH_CANDIDATES:
-        if bs > len(x):
+        if 2 * bs > len(x):
             continue
         try:
+            embed(model, x[:bs], bs, fp16, device)  # warm-up
+            torch.cuda.synchronize()
+            start = time.perf_counter()
             embed(model, x[: 2 * bs], bs, fp16, device)
-            return bs
+            rate = 2 * bs / (time.perf_counter() - start)
         except RuntimeError as err:
             if not is_oom(err):
                 raise
             free_cuda()
-    raise RuntimeError("OOM at batch size 1")
+            continue
+        if rate > best_rate:
+            best_bs, best_rate = bs, rate
+        else:
+            break
+    if best_bs is None:
+        raise RuntimeError("OOM at batch size 1")
+    return best_bs
 
 
 def time_throughput(model, x, bs: int, fp16: bool, device: str, monitor) -> tuple[float, int]:
@@ -145,6 +162,9 @@ def run_benchmark(args, cfg) -> None:
     assert torch.cuda.is_available(), "Phase 0b requires the NVIDIA GPU"
     device = "cuda"
     gpu_name = torch.cuda.get_device_name(0)
+    # Under WSL2 the driver pages VRAM overflow into host memory instead of raising OOM,
+    # which hides oversized batches; cap the allocator so they fail fast.
+    torch.cuda.set_per_process_memory_fraction(cfg["gpu"]["vram_fraction"])
     out_csv = Path(args.out)
     done = set()
     if out_csv.exists():

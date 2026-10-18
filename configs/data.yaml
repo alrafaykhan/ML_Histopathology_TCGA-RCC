@@ -81,3 +81,4 @@ gpu:
   temp_pause_c: 85
   temp_resume_c: 75
   monitor_interval_s: 60
+  vram_fraction: 0.85
