@@ -29,6 +29,11 @@ from src.utils import load_config  # noqa: E402
 BATCH_CANDIDATES = [256, 128, 64, 32, 16, 8, 4, 2, 1]
 PLAN_START = "## Encoder throughput"
 SECONDS_PER_DAY = 86400
+CSV_COLUMNS = [
+    "encoder", "tier", "order", "gpu", "load_s", "params_m", "embed_dim", "cosine_fp16",
+    "fp16_ok", "precision_note", "patches_per_s_fp32", "patches_per_s_fp16", "precision",
+    "batch_size", "patches_per_s", "peak_vram_gb", "max_temp_c", "status", "reason",
+]  # fmt: skip
 
 
 def is_oom(err: BaseException) -> bool:
@@ -214,7 +219,7 @@ def run_benchmark(args, cfg) -> None:
                 # Turing TU116 has no tensor cores, so fp16 is not always faster: time both
                 # precisions and keep the faster one that passes the agreement check.
                 timings = {}
-                for precision in ["fp32", "fp16"] if row["fp16_ok"] else ["fp32"]:
+                for precision in [p for p in args.precisions if p == "fp32" or row["fp16_ok"]]:
                     fp16 = precision == "fp16"
                     try:
                         bs = tune_batch(model, x, fp16, device)
@@ -251,7 +256,10 @@ def run_benchmark(args, cfg) -> None:
                 del model
                 free_cuda()
 
-            pd.DataFrame([row]).to_csv(out_csv, mode="a", header=not out_csv.exists(), index=False)
+            # Fixed column order: failed rows and fp32-only rows have fewer fields.
+            pd.DataFrame([row]).reindex(columns=CSV_COLUMNS).to_csv(
+                out_csv, mode="a", header=not out_csv.exists(), index=False
+            )
 
 
 def fmt(value) -> str:
@@ -362,6 +370,13 @@ def main() -> None:
     parser.add_argument("--threshold", type=float, default=0.999)
     parser.add_argument("--max-days", type=float, default=3.0)
     parser.add_argument("--plan-only", action="store_true")
+    parser.add_argument(
+        "--precisions",
+        nargs="+",
+        choices=["fp32", "fp16"],
+        default=["fp32", "fp16"],
+        help="precisions to time (the fp16 agreement check always runs)",
+    )
     args = parser.parse_args()
 
     cfg = load_config(args.config)
